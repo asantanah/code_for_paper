@@ -222,7 +222,7 @@ def Solver_TwoModesCoupledToMR(N,wr,kappa_a,kappa_b,gamma,n_th_r,Ea,Eb,galist,De
 
         ########################################
 
-    return [list2D_FieldAmplitude_modeA,       #0
+    output =[list2D_FieldAmplitude_modeA,      #0
             list2D_FieldAmplitude_modeA_alt,   #1
             list2D_FieldAmplitude_modeB,       #2
             list2D_AverageNumberOp_modeA,      #3
@@ -240,3 +240,5 @@ def Solver_TwoModesCoupledToMR(N,wr,kappa_a,kappa_b,gamma,n_th_r,Ea,Eb,galist,De
             list2D_populationLevel0_modeB,     #15
             list2D_populationLevel1_modeB,     #16
             list2D_populationLevel2_modeB]     #17
+
+    return  output

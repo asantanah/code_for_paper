@@ -78,7 +78,7 @@ def Solver_TwoModesCoupledToMR(N,wr,kappa_a,kappa_b,gamma,n_th_r,Ea,Eb,galist,De
         for i in range(len(Delta_a_list)):
 
             ga = galist[k]
-            gb = 2 * pi * 5 * 1e6          # Fixed at 5 MHz
+            gb = 2 * pi * 0 * 1e6          # Fixed at 5 MHz
 
             chiA = ((ga**2)/wr)
             chiB = ((gb**2)/wr)
@@ -89,8 +89,8 @@ def Solver_TwoModesCoupledToMR(N,wr,kappa_a,kappa_b,gamma,n_th_r,Ea,Eb,galist,De
             Delta_b = -((gb**2)/wr)
 
             #Hamiltonian
-            Ha = -Delta_a * Na
-            Hb = -Delta_b * Nb
+            Ha = - Delta_a * Na
+            Hb = - Delta_b * Nb
             Hr = wr * Nr
             Hint_a = -ga * Na * Xr
             Hint_b = -gb * Nb * Xr
@@ -145,7 +145,6 @@ def Solver_TwoModesCoupledToMR(N,wr,kappa_a,kappa_b,gamma,n_th_r,Ea,Eb,galist,De
 
             # Computing average number operator
             na_ss = expect(Na, rho_ss)
-            na2_ss = expect(Na**2, rho_ss)
             nb_ss = expect(Nb, rho_ss)
 
             listAux_NumberOp_modeA.append(abs(na_ss))
@@ -155,14 +154,15 @@ def Solver_TwoModesCoupledToMR(N,wr,kappa_a,kappa_b,gamma,n_th_r,Ea,Eb,galist,De
             aada = expect(a * a.dag() * a, rho_ss)
 
             pol_arg = (r.dag() - r) * ((ga/wr) * Na + (gb/wr) * Nb)
-            pol = pol_arg.expm()
+            pol = (pol_arg.expm()).unit()
             #pol_arg_half = (pol_arg / 2)
             #pol_half = pol_arg_half.expm()
 
-            rho_p = pol * rho_ss * pol.dag()
+            rho_p = (pol * rho_ss * pol.dag()).unit()
 
             #a_ss_2 = (Ea - ga * (rho_p * a * Xr).tr() - (2 * ga**2 / wr) * aada + X) / ((-ga**2 / wr) + 1j * (kappa_a/2) - 2 * chiAB * nb_ss - Delta_a)
-            a_ss_2 = (Ea + ga * (rho_p * a * Xr).tr() + (2 * ga**2 / wr) * aada + X) / ((ga**2 / wr) - 1j * (kappa_a/2) - 2 * chiAB * nb_ss - Delta_a)
+            a_ss_2 = (Ea + 0 * (rho_p * a * Xr).tr() - (2 * ga**2 / wr) * (a * a.dag() * a * rho_ss).tr() - X) / ((-ga**2 / wr) + 1j * (kappa_a/2) + 2 * chiAB * nb_ss - Delta_a)
+            a_ss_3 = (Ea - ga * (rho_p * a * Xr).tr() - (2 * ga**2 / wr) * (a * a.dag() * a * rho_ss).tr() - X) / ((-ga**2 / wr) + 1j * (kappa_a/2) + 2 * chiAB * nb_ss - Delta_a)
             listAux_fieldAmp_modeA_2.append(a_ss_2)
 
             # Computing populations

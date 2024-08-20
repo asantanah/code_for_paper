@@ -1621,7 +1621,7 @@ def Solver_TwoModesCoupledToMR_steadystate(N,w,g,J,E_drive,Omega,kappa,T,proc):
     etaAB = 2 * ((gb*ga)/wr)
 
     Omega_a = proc   
-    Omega_b = proc
+    Omega_b = Omega
 
     n_th_a = n_thermal(wa,((sc.k*T_a)/(sc.hbar)))
     n_th_b = n_thermal(wb,((sc.k*T_b)/(sc.hbar)))

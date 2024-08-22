@@ -1703,3 +1703,296 @@ def Solver_TwoModesCoupledToMR_steadystate(N,w,g,J,E_drive,Omega,kappa,T,proc):
                     
 
     return  rho_ss
+
+def Solver_TwoModesCoupledToMR_negativity_Edrive(N,w,g,J,Ea_drive,Eb_drive,Omega,kappa,T,proc):
+    """
+    This functions solves the master equation for a system of two EM modes,
+    A and B, coupled to single mechanical mode R, for a specific value of
+    coupling strengths g_a and g_b for differnet values of external field drive.
+
+    """
+    wa,wb,wr = w
+    kappa_a,kappa_b,gamma = kappa
+    T_a,T_b,T_r = T
+    J = J
+
+    ga, gb = g
+
+    etaA = ((ga**2)/wr)
+    etaB = ((gb**2)/wr)
+    etaAB = 2 * ((gb*ga)/wr)
+
+    Omega_a = proc   
+    Omega_b = Omega
+
+    n_th_a = n_thermal(wa,((sc.k*T_a)/(sc.hbar)))
+    n_th_b = n_thermal(wb,((sc.k*T_b)/(sc.hbar)))
+    n_th_r = n_thermal(wr,((sc.k*T_r)/(sc.hbar)))
+    a = tensor(destroy(N), qeye(N), qeye(N))
+    b = tensor(qeye(N), destroy(N), qeye(N))
+    r = tensor(qeye(N), qeye(N), destroy(N))
+    Na = a.dag() * a
+    Nb = b.dag() * b
+    Nr = r.dag() * r
+    Xa = a.dag() + a
+    Xb = b.dag() + b
+    Xr = r.dag() + r
+    Pa = a - a.dag()
+    Pb = b - b.dag()
+
+    # Entanglement
+    neg_list = []
+
+    for i in range(len(Ea_drive)):
+        neg_list_aux =[]
+        for j in range(len(Eb_drive)):
+
+            E_a = Ea_drive[i]
+            E_b = Eb_drive[j]
+
+            #Hamiltonian
+            Ha = (wa - Omega_a) * Na
+            Hb = (wb - Omega_b) * Nb
+            Hr = wr * Nr
+            Hint_a = -ga * Na * Xr
+            Hint_b = -gb * Nb * Xr
+            Hdrive_a = 1j * E_a * (a.dag()  - a)
+            Hdrive_b = 1j * E_b * (b.dag()  - b)
+            Htunneling = J * (a * b.dag() + a.dag() * b)
+            #Hq = 0.5 * (wq) * sz
+            #Hqa = Ga * (a * sm.dag() + a.dag() * sm)
+            #Hqb = Gb * (b * sm.dag() + b.dag() * sm)
+            #Hqa = (Ga**2/(wq-wa)) * Na * sz 
+            #Hqb = (Gb**2/(wq-wb)) * Nb * sz 
+
+            H = Ha + Hb + Hr + Hint_a + Hint_b + Hdrive_a + Hdrive_b #+ Htunneling#+ Hq + Hqa + Hqb
+
+            #def Hdrive_b_coeff(t, args):
+            #    return E_b * (1-heaviside(t-t1,0))
+
+            #H = [H0,[Hdrive_b,Hdrive_b_coeff]]
+
+            # collapse operators
+            c_ops = []
+
+            # Relaxations, temperature = 0 or >0
+
+            # cavity-a relaxation
+            rate = kappa_a * (1 + n_th_a)
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * a)
+                
+            # cavity-b relaxation
+            rate = kappa_b * (1 + n_th_b)
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * b)
+                
+            # mechanical oscillator relaxation
+            rate = gamma * (1 + n_th_r)
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * r)
+                
+            # Excitations, only temperature > 0  
+
+            rate = kappa_a * n_th_a
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * a.dag())
+
+            rate = kappa_b * n_th_b
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * b.dag())
+
+            # mechanical oscillator excitation    
+            rate = gamma * n_th_r
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * r.dag())
+
+            # Steady-state density operators
+            rho_ss = steadystate(H,c_ops)
+
+            neg = negativity(ptrace(rho_ss,(0,1)), 0, method='eigenvalues', logarithmic=True)
+            neg_list_aux.append(neg)
+
+        neg_list.append(neg_list_aux)
+
+    return neg_list
+
+
+def Solver_TwoModesCoupledToMR(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,ohm_a_list):
+    """
+    This functions solves the steady-state for a system of two EM modes,
+    A and B, coupled to single mechanical mode R, for different values of
+    coupling strength g_a and driver detuning Delta_a = wa-Omega_a.
+
+    """
+
+
+    for i in range(len(ohm_a_list)):
+
+        ga = proc
+        gb = 2 * pi * 5 * 1e6          # Fixed at 5 MHz
+
+        chiA = ((ga**2)/wr)
+        chiB = ((gb**2)/wr)
+        chiAB = ((gb*ga)/wr)
+
+        #Delta_a = Delta_a_list[i]
+
+        #Delta_b = -((gb**2)/wr)
+
+        Ohm_a = ohm_a_list[i] 
+        Ohm_b = wb - chiB
+
+        #Hamiltonian
+        Ha = (wa-Ohm_a) * Na
+        Hb = (wb-Ohm_b) * Nb
+        Hr = wr * Nr
+        Hint_a = -ga * Na * Xr
+        Hint_b = -gb * Nb * Xr
+        Hdrive_a = E_a * Xa
+        Hdrive_b = E_b * Xb
+        
+        H = Ha + Hb + Hr + Hint_a + Hint_b + Hdrive_a + Hdrive_b
+
+        # Collapse operators
+        c_ops = []
+        rate = kappa_a
+        if rate > 0.0:
+            c_ops.append(sqrt(rate) * a)
+
+        rate = kappa_b
+        if rate > 0.0:
+            c_ops.append(sqrt(rate) * b)
+
+        rate = gamma * (1 + n_th_r)
+        if rate > 0.0:
+            c_ops.append(sqrt(rate) * r)
+
+        rate = gamma * n_th_r
+        if rate > 0.0:
+            c_ops.append(sqrt(rate) * r.dag())
+        
+        # Steady-state density operators
+        rho_ss = steadystate(H, c_ops)
+        chi_ss = rho_ss - tensor(ptrace(rho_ss, (0)),
+                                    ptrace(rho_ss, (1)), 
+                                    ptrace(rho_ss, (2)))
+
+        # Computing X and Y
+        Y = (2 * ga * gb / wr) * expect(b.dag() * b * a.dag(), chi_ss)
+        X = (2 * ga * gb / wr) * expect(b.dag() * b * a, chi_ss)
+        X_alt = expect(b.dag() * b * a, chi_ss)
+
+        listAux_Y_modeA.append(abs(Y))
+        listAux_X_modeA.append(abs(X))
+        listAux_Xalt_modeA.append(abs(X_alt))
+
+        listAux_realY_modeA.append(real(Y))
+        listAux_realX_modeA.append(real(X))
+
+        listAux_imagY_modeA.append(imag(Y))
+        listAux_imagX_modeA.append(imag(X))
+
+        # Computing field amplitudes, method 1
+        a_ss = expect(a, rho_ss)
+        b_ss = expect(b, rho_ss)
+
+        listAux_fieldAmp_modeA_1.append(a_ss)
+        listAux_fieldAmp_modeB.append(b_ss)
+
+        # Computing average number operator
+        na_ss = expect(Na, rho_ss)
+        nb_ss = expect(Nb, rho_ss)
+
+        listAux_NumberOp_modeA.append(abs(na_ss))
+        listAux_NumberOp_modeB.append(abs(nb_ss))
+
+        # Computing field amplitude, method 2
+        aada = expect(a * a.dag() * a, rho_ss)
+
+        # polaroid transformation
+        pol_arg = (r - r.dag()) * ((ga/wr) * Na + (gb/wr) * Nb) 
+        pol = (pol_arg.expm())
+
+        # P operator
+        P_arg = -(r - r.dag()) * ((ga/wr))
+        P_arg_half = (P_arg / 2)
+        P_half = P_arg_half.expm()
+
+        rho_p = (pol * rho_ss * pol.dag())
+
+        # Eq. 20
+        a_ss_2 = (E_a - ga * (rho_p * a * Xr).tr() - X) / ((-ga**2 / wr) + 1j * (kappa_a/2) + 2 * chiAB * nb_ss - wa + Ohm_a)
+        # Eq. 20 alternative
+        a_ss_3 = (-E_a - ga * (P_half * rho_p * a * P_half * Xr).tr() - (2 * ga**2 / wr) * aada - X) / ((-ga**2 / wr) + 1j * (kappa_a/2) + 2 * chiAB * nb_ss - wa + Ohm_a)
+        # Eq. 20 without X
+        #a_ss_4 = ((2 * ga**2 / wr) * aada) / ((-ga**2 / wr) + 1j * (kappa_a/2) + 2 * chiAB * nb_ss - wa + Ohm_a)
+        a_ss_4 = (E_a - (2 * ga**2 / wr) * aada - X) / ((-ga**2 / wr) + 1j * (kappa_a/2) + 2 * chiAB * nb_ss - wa + Ohm_a)
+        # Eq. 20 açternative without X
+        a_ss_5 = (E_a - ga * (P_half * rho_p * a * P_half * Xr).tr() - X) / ((-ga**2 / wr) + 1j * (kappa_a/2) + 2 * chiAB * nb_ss - wa + Ohm_a)
+        #a_ss_5 = (E_a + ga * (rho_p * a * Xr).tr() + (2 * ga**2 / wr) * aada) / ((ga**2 / wr) + 1j * (kappa_a/2) - 2 * chiAB * nb_ss - wa + Ohm_a)
+
+        listAux_fieldAmp_modeA_2.append(a_ss_2)
+        listAux_fieldAmp_modeA_3.append(a_ss_3)
+        listAux_fieldAmp_modeA_4.append(a_ss_4)
+        listAux_fieldAmp_modeA_5.append(a_ss_5)
+
+        # Computing populations
+        rhoA = ptrace(rho_ss, (0))
+        rhoB = ptrace(rho_ss, (1))
+
+        # Ground state
+        p0A = (fidelity(rhoA, fock(N, 0)))**2
+        p0B = (fidelity(rhoB, fock(N, 0)))**2
+        # First excited state
+        p1A = (fidelity(rhoA, fock(N, 1)))**2
+        p1B = (fidelity(rhoB, fock(N, 1)))**2
+        # Second excited state
+        p2A = (fidelity(rhoA, fock(N, 2)))**2
+        p2B = (fidelity(rhoB, fock(N, 2)))**2
+
+        listAux_populationLevel0_modeA.append(p0A)
+        listAux_populationLevel0_modeB.append(p0B)
+        listAux_populationLevel1_modeA.append(p1A)
+        listAux_populationLevel1_modeB.append(p1B)
+        listAux_populationLevel2_modeA.append(p2A)
+        listAux_populationLevel2_modeB.append(p2B)
+
+        # Computing negativity between mode A and B
+        rhoAB = ptrace(rho_ss, (0, 1))
+
+        neg = negativity(rhoAB, 0, method='eigenvalues')
+        
+        listAux_negativity_modesAB.append(neg)
+
+    absA_list = [abs(k) for k in listAux_fieldAmp_modeA_1]
+    absA_list_2 = [abs(k) for k in listAux_fieldAmp_modeA_2]
+    absA_list_3 = [abs(k) for k in listAux_fieldAmp_modeA_3]
+    absA_list_4 = [abs(k) for k in listAux_fieldAmp_modeA_4]
+    absA_list_5 = [abs(k) for k in listAux_fieldAmp_modeA_5]
+    absB_list = [abs(k) for k in listAux_fieldAmp_modeB]
+
+    output =[absA_list,                         #0
+            absA_list_2,                        #1
+            absA_list_3,                        #2
+            absA_list_4,                        #3
+            absA_list_5,                        #4
+            absB_list,                          #5
+            listAux_NumberOp_modeA,             #6
+            listAux_NumberOp_modeB,             #7
+            listAux_X_modeA,                    #8
+            listAux_Y_modeA,                    #9
+            listAux_realX_modeA,                #10
+            listAux_realY_modeA,                #11
+            listAux_imagX_modeA,                #12
+            listAux_imagY_modeA,                #13
+            listAux_negativity_modesAB,         #14
+            listAux_populationLevel0_modeA,     #15
+            listAux_populationLevel1_modeA,     #16
+            listAux_populationLevel2_modeA,     #17
+            listAux_populationLevel0_modeB,     #18
+            listAux_populationLevel1_modeB,     #19
+            listAux_populationLevel2_modeB,     #20
+            listAux_Xalt_modeA]                 #21
+
+    return  output

@@ -1816,3 +1816,116 @@ def Solver_TwoModesCoupledToMR_negativity_Edrive (N,w,g,J,Ea_drive,Eb_drive,Omeg
         neg_list.append(neg_list_aux)
 
     return neg_list
+
+def Solver_TwoModesCoupledToMR_negativity_dissipation (N,w,g,J,Ea_drive,Eb_drive,Omega,kappa,T,proc):
+    """
+    This functions solves the master equation for a system of two EM modes,
+    A and B, coupled to single mechanical mode R, for a specific value of
+    coupling strengths g_a and g_b for differnet values of external field drive.
+
+    """
+    wa,wb,wr = w
+    kappa_a,kappa_b,gamma = kappa
+    T_a,T_b,T_r = T
+    J = J
+
+    ga, gb = g
+
+    etaA = ((ga**2)/wr)
+    etaB = ((gb**2)/wr)
+    etaAB = 2 * ((gb*ga)/wr)
+
+    Omega_a = proc   
+    Omega_b = Omega
+
+    n_th_a = n_thermal(wa,((sc.k*T_a)/(sc.hbar)))
+    n_th_b = n_thermal(wb,((sc.k*T_b)/(sc.hbar)))
+    n_th_r = n_thermal(wr,((sc.k*T_r)/(sc.hbar)))
+    a = tensor(destroy(N), qeye(N), qeye(N))
+    b = tensor(qeye(N), destroy(N), qeye(N))
+    r = tensor(qeye(N), qeye(N), destroy(N))
+    Na = a.dag() * a
+    Nb = b.dag() * b
+    Nr = r.dag() * r
+    Xa = a.dag() + a
+    Xb = b.dag() + b
+    Xr = r.dag() + r
+    Pa = a - a.dag()
+    Pb = b - b.dag()
+
+    # Entanglement
+    neg_list = []
+
+    for i in range(len(Ea_drive)):
+        neg_list_aux =[]
+        for j in range(len(Eb_drive)):
+
+            E_a = Ea_drive[i]
+            E_b = Eb_drive[j]
+
+            #Hamiltonian
+            Ha = (wa - Omega_a) * Na
+            Hb = (wb - Omega_b) * Nb
+            Hr = wr * Nr
+            Hint_a = -ga * Na * Xr
+            Hint_b = -gb * Nb * Xr
+            Hdrive_a = 1j * E_a * (a.dag()  - a)
+            Hdrive_b = 1j * E_b * (b.dag()  - b)
+            Htunneling = J * (a * b.dag() + a.dag() * b)
+            #Hq = 0.5 * (wq) * sz
+            #Hqa = Ga * (a * sm.dag() + a.dag() * sm)
+            #Hqb = Gb * (b * sm.dag() + b.dag() * sm)
+            #Hqa = (Ga**2/(wq-wa)) * Na * sz 
+            #Hqb = (Gb**2/(wq-wb)) * Nb * sz 
+
+            H = Ha + Hb + Hr + Hint_a + Hint_b + Hdrive_a + Hdrive_b #+ Htunneling#+ Hq + Hqa + Hqb
+
+            #def Hdrive_b_coeff(t, args):
+            #    return E_b * (1-heaviside(t-t1,0))
+
+            #H = [H0,[Hdrive_b,Hdrive_b_coeff]]
+
+            # collapse operators
+            c_ops = []
+
+            # Relaxations, temperature = 0 or >0
+
+            # cavity-a relaxation
+            rate = kappa_a * (1 + n_th_a)
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * a)
+                
+            # cavity-b relaxation
+            rate = kappa_b * (1 + n_th_b)
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * b)
+                
+            # mechanical oscillator relaxation
+            rate = gamma * (1 + n_th_r)
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * r)
+                
+            # Excitations, only temperature > 0  
+
+            rate = kappa_a * n_th_a
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * a.dag())
+
+            rate = kappa_b * n_th_b
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * b.dag())
+
+            # mechanical oscillator excitation    
+            rate = gamma * n_th_r
+            if rate > 0.0:
+                c_ops.append(sqrt(rate) * r.dag())
+
+            # Steady-state density operators
+            rho_ss = steadystate(H,c_ops)
+
+            neg = negativity(ptrace(rho_ss,(0,1)), 0, method='eigenvalues', logarithmic=True)
+            neg_list_aux.append(neg)
+
+        neg_list.append(neg_list_aux)
+
+    return neg_list

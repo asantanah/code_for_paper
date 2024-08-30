@@ -1700,9 +1700,16 @@ def Solver_TwoModesCoupledToMR_steadystate(N,w,g,J,E_drive,Omega,kappa,T,proc):
 
     # Steady-state density operators
     rho_ss = steadystate(H,c_ops)
-                    
 
-    return  rho_ss
+    pol_arg = (r - r.dag()) * ((ga/wr) * Na + (gb/wr) * Nb)
+    pol = (pol_arg.expm())
+    #pol_arg_half = (pol_arg / 2)
+    #pol_half = pol_arg_half.expm()
+
+    rho_p = (pol * rho_ss * pol.dag())
+                
+
+    return  rho_p
 
 def Solver_TwoModesCoupledToMR_negativity_Edrive (N,w,g,J,Ea_drive,Eb_drive,Omega,kappa,T,proc):
     """
@@ -1817,7 +1824,8 @@ def Solver_TwoModesCoupledToMR_negativity_Edrive (N,w,g,J,Ea_drive,Eb_drive,Omeg
 
     return neg_list
 
-def Solver_TwoModesCoupledToMR_negativity_dissipation (N,w,g,J,Ea_drive,Eb_drive,Omega,kappa,T,proc):
+
+def Solver_TwoModesCoupledToMR_spectrum_at_w0(N,w,target_pos,g,J,E_drive,Omega,kappa,T,proc):
     """
     This functions solves the master equation for a system of two EM modes,
     A and B, coupled to single mechanical mode R, for a specific value of
@@ -1827,6 +1835,7 @@ def Solver_TwoModesCoupledToMR_negativity_dissipation (N,w,g,J,Ea_drive,Eb_drive
     wa,wb,wr = w
     kappa_a,kappa_b,gamma = kappa
     T_a,T_b,T_r = T
+    E_b = E_drive
     J = J
 
     ga, gb = g
@@ -1835,7 +1844,8 @@ def Solver_TwoModesCoupledToMR_negativity_dissipation (N,w,g,J,Ea_drive,Eb_drive
     etaB = ((gb**2)/wr)
     etaAB = 2 * ((gb*ga)/wr)
 
-    Omega_a = proc   
+    E_a = proc
+
     Omega_b = Omega
 
     n_th_a = n_thermal(wa,((sc.k*T_a)/(sc.hbar)))
@@ -1853,79 +1863,65 @@ def Solver_TwoModesCoupledToMR_negativity_dissipation (N,w,g,J,Ea_drive,Eb_drive
     Pa = a - a.dag()
     Pb = b - b.dag()
 
-    # Entanglement
-    neg_list = []
+    #Hamiltonian
+    Ha = target_pos * Na
+    Hb = (wb - Omega_b) * Nb
+    Hr = wr * Nr
+    Hint_a = -ga * Na * Xr
+    Hint_b = -gb * Nb * Xr
+    Hdrive_a = 1j * E_a * (a.dag()  - a)
+    Hdrive_b = 1j * E_b * (b.dag()  - b)
+    Htunneling = J * (a * b.dag() + a.dag() * b)
+    #Hq = 0.5 * (wq) * sz
+    #Hqa = Ga * (a * sm.dag() + a.dag() * sm)
+    #Hqb = Gb * (b * sm.dag() + b.dag() * sm)
+    #Hqa = (Ga**2/(wq-wa)) * Na * sz 
+    #Hqb = (Gb**2/(wq-wb)) * Nb * sz 
 
-    for i in range(len(Ea_drive)):
-        neg_list_aux =[]
-        for j in range(len(Eb_drive)):
+    H = Ha + Hb + Hr + Hint_a + Hint_b + Hdrive_a + Hdrive_b #+ Htunneling#+ Hq + Hqa + Hqb
 
-            E_a = Ea_drive[i]
-            E_b = Eb_drive[j]
+    #def Hdrive_b_coeff(t, args):
+    #    return E_b * (1-heaviside(t-t1,0))
 
-            #Hamiltonian
-            Ha = (wa - Omega_a) * Na
-            Hb = (wb - Omega_b) * Nb
-            Hr = wr * Nr
-            Hint_a = -ga * Na * Xr
-            Hint_b = -gb * Nb * Xr
-            Hdrive_a = 1j * E_a * (a.dag()  - a)
-            Hdrive_b = 1j * E_b * (b.dag()  - b)
-            Htunneling = J * (a * b.dag() + a.dag() * b)
-            #Hq = 0.5 * (wq) * sz
-            #Hqa = Ga * (a * sm.dag() + a.dag() * sm)
-            #Hqb = Gb * (b * sm.dag() + b.dag() * sm)
-            #Hqa = (Ga**2/(wq-wa)) * Na * sz 
-            #Hqb = (Gb**2/(wq-wb)) * Nb * sz 
+    #H = [H0,[Hdrive_b,Hdrive_b_coeff]]
 
-            H = Ha + Hb + Hr + Hint_a + Hint_b + Hdrive_a + Hdrive_b #+ Htunneling#+ Hq + Hqa + Hqb
+    # collapse operators
+    c_ops = []
 
-            #def Hdrive_b_coeff(t, args):
-            #    return E_b * (1-heaviside(t-t1,0))
+    # Relaxations, temperature = 0 or >0
 
-            #H = [H0,[Hdrive_b,Hdrive_b_coeff]]
+    # cavity-a relaxation
+    rate = kappa_a * (1 + n_th_a)
+    if rate > 0.0:
+        c_ops.append(sqrt(rate) * a)
+        
+    # cavity-b relaxation
+    rate = kappa_b * (1 + n_th_b)
+    if rate > 0.0:
+        c_ops.append(sqrt(rate) * b)
+        
+    # mechanical oscillator relaxation
+    rate = gamma * (1 + n_th_r)
+    if rate > 0.0:
+        c_ops.append(sqrt(rate) * r)
+        
+    # Excitations, only temperature > 0  
 
-            # collapse operators
-            c_ops = []
+    rate = kappa_a * n_th_a
+    if rate > 0.0:
+        c_ops.append(sqrt(rate) * a.dag())
 
-            # Relaxations, temperature = 0 or >0
+    rate = kappa_b * n_th_b
+    if rate > 0.0:
+        c_ops.append(sqrt(rate) * b.dag())
 
-            # cavity-a relaxation
-            rate = kappa_a * (1 + n_th_a)
-            if rate > 0.0:
-                c_ops.append(sqrt(rate) * a)
-                
-            # cavity-b relaxation
-            rate = kappa_b * (1 + n_th_b)
-            if rate > 0.0:
-                c_ops.append(sqrt(rate) * b)
-                
-            # mechanical oscillator relaxation
-            rate = gamma * (1 + n_th_r)
-            if rate > 0.0:
-                c_ops.append(sqrt(rate) * r)
-                
-            # Excitations, only temperature > 0  
+    # mechanical oscillator excitation    
+    rate = gamma * n_th_r
+    if rate > 0.0:
+        c_ops.append(sqrt(rate) * r.dag())
+    
 
-            rate = kappa_a * n_th_a
-            if rate > 0.0:
-                c_ops.append(sqrt(rate) * a.dag())
-
-            rate = kappa_b * n_th_b
-            if rate > 0.0:
-                c_ops.append(sqrt(rate) * b.dag())
-
-            # mechanical oscillator excitation    
-            rate = gamma * n_th_r
-            if rate > 0.0:
-                c_ops.append(sqrt(rate) * r.dag())
-
-            # Steady-state density operators
-            rho_ss = steadystate(H,c_ops)
-
-            neg = negativity(ptrace(rho_ss,(0,1)), 0, method='eigenvalues', logarithmic=True)
-            neg_list_aux.append(neg)
-
-        neg_list.append(neg_list_aux)
-
-    return neg_list
+    # Steady-state density operators
+    rho_ss = steadystate(H,c_ops)
+                    
+    return  rho_ss

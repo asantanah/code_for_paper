@@ -3,11 +3,12 @@
         "**/.git": true,
         "**/.svn": true,
         "**/.hg": true,
-        "**/CVS": true,
         "**/.DS_Store": true,
         "**/Thumbs.db": true,
+        "**/CVS": true,
         "**/.vscode": true,
-        "**/__pycache__": true
+        "**/__pycache__": true,
+        ".gitignore": true
     },
     "explorerExclude.backup": {}
 }

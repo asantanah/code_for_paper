@@ -687,15 +687,12 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
     listAux_populationLevel1_modeA = []
     listAux_populationLevel1_modeB = []
 
-    if N>1:
-        listAux_populationLevel2_modeA = []
-        listAux_populationLevel2_modeB = []
-    if N>2:
-        listAux_populationLevel3_modeA = []
-        listAux_populationLevel3_modeB = []
-    if N>3:
-        listAux_populationLevel4_modeA = []
-        listAux_populationLevel4_modeB = []
+    listAux_populationLevel2_modeA = []
+    listAux_populationLevel2_modeB = []
+    listAux_populationLevel3_modeA = []
+    listAux_populationLevel3_modeB = []
+    listAux_populationLevel4_modeA = []
+    listAux_populationLevel4_modeB = []
 
     for i in range(len(ohm_a_list)):
 
@@ -787,15 +784,15 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         # First excited state
         p1A = (fidelity(rhoA, fock(N, 1)))**2
         p1B = (fidelity(rhoB, fock(N, 1)))**2
-        if N>1:
+        if N>2:
             # Second excited state
             p2A = (fidelity(rhoA, fock(N, 2)))**2
             p2B = (fidelity(rhoB, fock(N, 2)))**2
-        if N>2:
+        if N>3:
             # Third excited state
             p3A = (fidelity(rhoA, fock(N, 3)))**2
             p3B = (fidelity(rhoB, fock(N, 3)))**2
-        if N>3:
+        if N>4:
             # Fourth excited state
             p4A = (fidelity(rhoA, fock(N, 4)))**2
             p4B = (fidelity(rhoB, fock(N, 4)))**2
@@ -804,13 +801,13 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         listAux_populationLevel0_modeB.append(p0B)
         listAux_populationLevel1_modeA.append(p1A)
         listAux_populationLevel1_modeB.append(p1B)
-        if N>1:
+        if N>2:
             listAux_populationLevel2_modeA.append(p2A)
             listAux_populationLevel2_modeB.append(p2B)
-        if N>2:
+        if N>3:
             listAux_populationLevel3_modeA.append(p3A)
             listAux_populationLevel3_modeB.append(p3B)
-        if N>3:
+        if N>4:
             listAux_populationLevel4_modeA.append(p4A)
             listAux_populationLevel4_modeB.append(p4B)
 
@@ -820,21 +817,59 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
 
     absB_list = [abs(k) for k in listAux_fieldAmp_modeB]
 
-    output =[absA_list,                         #0
-            absA_list_2,                        #1
-            absB_list,                          #2
-            listAux_NumberOp_modeA,             #3
-            listAux_NumberOp_modeB,             #4
-            listAux_populationLevel0_modeA,     #5
-            listAux_populationLevel1_modeA,     #6
-            listAux_populationLevel2_modeA,     #7
-            listAux_populationLevel3_modeA,     #8
-            listAux_populationLevel4_modeA,     #9
-            listAux_populationLevel0_modeB,     #10
-            listAux_populationLevel1_modeB,     #11
-            listAux_populationLevel2_modeB,     #12
-            listAux_populationLevel3_modeB,     #13
-            listAux_populationLevel4_modeB]     #14
+    if N==2:
+        output =[absA_list,                         #0
+                absA_list_2,                        #1
+                absB_list,                          #2
+                listAux_NumberOp_modeA,             #3
+                listAux_NumberOp_modeB,             #4
+                listAux_populationLevel0_modeA,     #5
+                listAux_populationLevel1_modeA,     #6
+                listAux_populationLevel0_modeB,     #7
+                listAux_populationLevel1_modeB]     #8   
+    elif N==3:
+        output =[absA_list,                         #0
+                absA_list_2,                        #1
+                absB_list,                          #2
+                listAux_NumberOp_modeA,             #3
+                listAux_NumberOp_modeB,             #4
+                listAux_populationLevel0_modeA,     #5
+                listAux_populationLevel1_modeA,     #6
+                listAux_populationLevel2_modeA,     #7   
+                listAux_populationLevel0_modeB,     #8
+                listAux_populationLevel1_modeB,     #9
+                listAux_populationLevel2_modeB]     #10
+    elif N==4:
+        output =[absA_list,                         #0
+                absA_list_2,                        #1
+                absB_list,                          #2
+                listAux_NumberOp_modeA,             #3
+                listAux_NumberOp_modeB,             #4
+                listAux_populationLevel0_modeA,     #5
+                listAux_populationLevel1_modeA,     #6
+                listAux_populationLevel2_modeA,     #7
+                listAux_populationLevel3_modeA,     #8
+                listAux_populationLevel0_modeB,     #9
+                listAux_populationLevel1_modeB,     #10
+                listAux_populationLevel2_modeB,     #11
+                listAux_populationLevel3_modeB]     #12
+        
+    elif N==5:
+        output =[absA_list,                         #0
+                absA_list_2,                        #1
+                absB_list,                          #2
+                listAux_NumberOp_modeA,             #3
+                listAux_NumberOp_modeB,             #4
+                listAux_populationLevel0_modeA,     #5
+                listAux_populationLevel1_modeA,     #6
+                listAux_populationLevel2_modeA,     #7
+                listAux_populationLevel3_modeA,     #8
+                listAux_populationLevel4_modeA,     #9
+                listAux_populationLevel0_modeB,     #10
+                listAux_populationLevel1_modeB,     #11
+                listAux_populationLevel2_modeB,     #12
+                listAux_populationLevel3_modeB,     #13
+                listAux_populationLevel4_modeB]     #14
 
     return  output
 

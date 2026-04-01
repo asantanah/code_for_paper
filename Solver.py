@@ -9,6 +9,9 @@ import time
 import datetime
 import os
 
+import matplotlib.pyplot as plt
+
+
 
 def Solver_TwoModesCoupledToMR(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,ohm_a_list):
     """
@@ -392,6 +395,9 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
 
     listAux_negativity_modesAB = []
 
+    listAux_g2_modeA = []
+    listAux_g2_modeB = []
+
     for i in range(len(galist)):
 
         ga = galist[i]
@@ -401,8 +407,8 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         chiB = ((gb**2)/wr)
         chiAB = ((gb*ga)/wr)
 
-        Ohm_a = wa - chiA
-        Ohm_b = wb - chiB
+        Ohm_a = wa
+        Ohm_b = wb
 
         #Hamiltonian
         Ha = (wa-Ohm_a) * Na
@@ -485,6 +491,14 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         
         listAux_negativity_modesAB.append(neg)
 
+        # Computing g2:
+
+        g2A = (expect(a.dag() * a.dag() * a * a, rho_ss)) / (expect(Na, rho_ss)**2)
+        g2B = (expect(b.dag() * b.dag() * b * b, rho_ss)) / (expect(Nb, rho_ss)**2)
+
+        listAux_g2_modeA.append(g2A)
+        listAux_g2_modeB.append(g2B)    
+
     absA_list = [abs(k) for k in listAux_fieldAmp_modeA_1]
     absA_list_2 = [abs(k) for k in listAux_fieldAmp_modeA_2]
 
@@ -498,7 +512,9 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
             listAux_C1,                         #5
             listAux_C2,                         #6
             listAux_Csym,                       #7
-            listAux_negativity_modesAB]         #8
+            listAux_negativity_modesAB,         #8
+            listAux_g2_modeA,                   #9
+            listAux_g2_modeB]                   #10
 
     return  output
 
@@ -540,6 +556,9 @@ def Solver_TwoModesCoupledToMR_Sim3(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
     listAux_Csym = []
 
     listAux_negativity_modesAB = []
+
+    listAux_g2_modeA = []
+    listAux_g2_modeB = []
 
     for i in range(len(ohm_a_list)):
 
@@ -634,6 +653,14 @@ def Solver_TwoModesCoupledToMR_Sim3(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         
         listAux_negativity_modesAB.append(neg)
 
+        # Computing g2:
+
+        g2A = (expect(a.dag() * a.dag() * a * a, rho_ss)) / (expect(Na, rho_ss)**2)
+        g2B = (expect(b.dag() * b.dag() * b * b, rho_ss)) / (expect(Nb, rho_ss)**2)
+
+        listAux_g2_modeA.append(g2A)
+        listAux_g2_modeB.append(g2B)   
+
     absA_list = [abs(k) for k in listAux_fieldAmp_modeA_1]
     absA_list_2 = [abs(k) for k in listAux_fieldAmp_modeA_2]
 
@@ -647,7 +674,9 @@ def Solver_TwoModesCoupledToMR_Sim3(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
             listAux_C1,                         #5
             listAux_C2,                         #6
             listAux_Csym,                       #7
-            listAux_negativity_modesAB]         #8
+            listAux_negativity_modesAB,         #8
+            listAux_g2_modeA,                   #9
+            listAux_g2_modeB]                   #10
 
     return  output
 
@@ -655,7 +684,7 @@ def Solver_TwoModesCoupledToMR_Sim3(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
 ######################################################################################################
 ######################################################################################################
 
-def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,ohm_a_list):
+def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,ohm_a_list,Ohm_b):
     """
     This functions solves the steady-state for a system of two EM modes,
     A and B, coupled to single mechanical mode R, for different values of
@@ -694,17 +723,21 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
     listAux_populationLevel4_modeA = []
     listAux_populationLevel4_modeB = []
 
+    listAux_g2_modeA = []
+    listAux_g2_modeB = []
+
     for i in range(len(ohm_a_list)):
 
-        ga = proc         
+        ga = proc 
+        #gb = ga
         gb = 2 * pi * 5 * 1e6          # Fixed at 5 MHz
-
+        
         chiA = ((ga**2)/wr)
         chiB = ((gb**2)/wr)
         chiAB = ((gb*ga)/wr)
 
         Ohm_a = ohm_a_list[i] 
-        Ohm_b = wb - chiB
+        #Ohm_b = Ohm_a - wa + wb
 
         #Hamiltonian
         Ha = (wa-Ohm_a) * Na
@@ -811,6 +844,13 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
             listAux_populationLevel4_modeA.append(p4A)
             listAux_populationLevel4_modeB.append(p4B)
 
+        # Computing g2:
+
+        g2A = (expect(a.dag() * a.dag() * a * a, rho_ss)) / (expect(Na, rho_ss)**2)
+        g2B = (expect(b.dag() * b.dag() * b * b, rho_ss)) / (expect(Nb, rho_ss)**2)
+
+        listAux_g2_modeA.append(g2A)
+        listAux_g2_modeB.append(g2B)    
 
     absA_list = [abs(k) for k in listAux_fieldAmp_modeA_1]
     absA_list_2 = [abs(k) for k in listAux_fieldAmp_modeA_2]
@@ -826,7 +866,9 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
                 listAux_populationLevel0_modeA,     #5
                 listAux_populationLevel1_modeA,     #6
                 listAux_populationLevel0_modeB,     #7
-                listAux_populationLevel1_modeB]     #8   
+                listAux_populationLevel1_modeB,     #8
+                listAux_g2_modeA,                   #9
+                listAux_g2_modeB]                   #10
     elif N==3:
         output =[absA_list,                         #0
                 absA_list_2,                        #1
@@ -838,7 +880,9 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
                 listAux_populationLevel2_modeA,     #7   
                 listAux_populationLevel0_modeB,     #8
                 listAux_populationLevel1_modeB,     #9
-                listAux_populationLevel2_modeB]     #10
+                listAux_populationLevel2_modeB,     #10
+                listAux_g2_modeA,                   #11
+                listAux_g2_modeB]                   #12
     elif N==4:
         output =[absA_list,                         #0
                 absA_list_2,                        #1
@@ -852,7 +896,9 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
                 listAux_populationLevel0_modeB,     #9
                 listAux_populationLevel1_modeB,     #10
                 listAux_populationLevel2_modeB,     #11
-                listAux_populationLevel3_modeB]     #12
+                listAux_populationLevel3_modeB,     #12
+                listAux_g2_modeA,                   #13
+                listAux_g2_modeB]                   #14
         
     elif N==5:
         output =[absA_list,                         #0
@@ -869,13 +915,16 @@ def Solver_TwoModesCoupledToMR_Sim4(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
                 listAux_populationLevel1_modeB,     #11
                 listAux_populationLevel2_modeB,     #12
                 listAux_populationLevel3_modeB,     #13
-                listAux_populationLevel4_modeB]     #14
+                listAux_populationLevel4_modeB,     #14
+                listAux_g2_modeA,                   #15
+                listAux_g2_modeB]                   #16
 
     return  output
 
 ######################################################################################################
 ######################################################################################################
 ######################################################################################################
+
 
 def Solver_ThreeModesCoupledToMR_Sim1(N,wa,wb,wc,wr,kappa_a,kappa_b,kappa_c,gamma,n_th_r,E_a,E_b,E_c,proc,ohm_a_list):
     """

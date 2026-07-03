@@ -211,16 +211,27 @@ def Solver_TwoModesCoupledToMR(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,p
 ######################################################################################################
 ######################################################################################################
 
-def Solver_TwoModesCoupledToMR_Sim1(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,ohm_a_list):
+def Solver_TwoModesCoupledToMR_Sim1(N_a,N_b,N_r,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,Delta_a_list):
     """
-    This functions solves the steady-state for a system of two EM modes,
-    A and B, coupled to single mechanical mode R, for different values of
-    coupling strength g_a and driver detuning Delta_a = wa-Omega_a.
+    (Simulation 1) This functions solves the steady-state and returns a list of quantities for 
+    a system of two EM modes, A and B, coupled to single mechanical mode R, for different values 
+    of driver detuning Delta_a = (wa-Omega_a) (x-axis) and  coupling strength g_a (y-axis/proc).
 
+    The output order is the following:
+    0. Field amplitude mode A 
+    1. Field amplitude mode B
+    2. Average number operator mode A
+    3. Average number operator mode B
+    4. Correlation C1
+    5. Correlation C2
+    6. Correlation Csym
+    7. Negativity between mode A and B
+    8. g2 for mode A
+    9. g2 for mode B
     """
-    a = tensor(destroy(N), qeye(N), qeye(N))
-    b = tensor(qeye(N), destroy(N), qeye(N))
-    r = tensor(qeye(N), qeye(N), destroy(N))
+    a = tensor(destroy(N_a), qeye(N_b), qeye(N_r))
+    b = tensor(qeye(N_a), destroy(N_b), qeye(N_r))
+    r = tensor(qeye(N_a), qeye(N_b), destroy(N_r))
     Na = a.dag() * a
     Nb = b.dag() * b
     Nr = r.dag() * r
@@ -228,39 +239,36 @@ def Solver_TwoModesCoupledToMR_Sim1(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
     Xb = b.dag() + b
     Xr = r.dag() + r
 
-
     # Field operators
-    listAux_fieldAmp_modeA_1 = []
-    listAux_fieldAmp_modeA_2 = []
+    listAux_fieldAmp_modeA = []
     listAux_fieldAmp_modeB = []
 
     listAux_NumberOp_modeA = []
     listAux_NumberOp_modeB = []
 
     # Correlations
-    listAux_a1N2_modeA = []
-
     listAux_C1 = []
     listAux_C2 = []
     listAux_Csym = []
 
     listAux_negativity_modesAB = []
 
-    for i in range(len(ohm_a_list)):
+    listAux_g2_modeA = []
+    listAux_g2_modeB = []
+
+    for i in range(len(Delta_a_list)):
 
         ga = proc
-        gb = 2 * pi * 5 * 1e6          # Fixed at 5 MHz
+        gb = 5           # Fixed at 5 MHz
 
-        chiA = ((ga**2)/wr)
         chiB = ((gb**2)/wr)
-        chiAB = ((gb*ga)/wr)
 
-        Ohm_a = ohm_a_list[i] 
-        Ohm_b = wb - chiB
+        #Ohm_a = ohm_a_list[i] 
+        Delta_b = -chiB
 
         #Hamiltonian
-        Ha = (wa-Ohm_a) * Na
-        Hb = (wb-Ohm_b) * Nb
+        Ha = -Delta_a_list[i] * Na
+        Hb = -Delta_b * Nb
         Hr = wr * Nr
         Hint_a = -ga * Na * Xr
         Hint_b = -gb * Nb * Xr
@@ -288,7 +296,7 @@ def Solver_TwoModesCoupledToMR_Sim1(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
             c_ops.append(sqrt(rate) * r.dag())
         
         # Steady-state density operators
-        rho_ss = steadystate(H, c_ops)
+        rho_ss = steadystate(H, c_ops, method='power')
         chi_ss = rho_ss - tensor(ptrace(rho_ss, (0)),
                                  ptrace(rho_ss, (1)), 
                                  ptrace(rho_ss, (2)))
@@ -306,7 +314,7 @@ def Solver_TwoModesCoupledToMR_Sim1(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         a_ss = expect(a, rho_ss)
         b_ss = expect(b, rho_ss)
 
-        listAux_fieldAmp_modeA_1.append(a_ss)
+        listAux_fieldAmp_modeA.append(a_ss)
         listAux_fieldAmp_modeB.append(b_ss)
 
         # Computing average number operator
@@ -316,43 +324,34 @@ def Solver_TwoModesCoupledToMR_Sim1(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         listAux_NumberOp_modeA.append(abs(na_ss))
         listAux_NumberOp_modeB.append(abs(nb_ss))
 
-        # Computing field amplitude, method 2
-        aada = expect(a * a.dag() * a, rho_ss)
-
-        pol_arg = (r.dag() - r) * ((ga/wr) * Na + (gb/wr) * Nb)
-        pol = (pol_arg.expm())
-        #pol_arg_half = (pol_arg / 2)
-        #pol_half = pol_arg_half.expm()
-
-        rho_p = (pol * rho_ss * pol.dag())
-
-        # Eq. 20
-        a_ss_2 = (E_a + ga * (rho_p * a * Xr).tr() - ((2 * ga**2 / wr) * aada ) - ((2 * ga*gb / wr) * C_1)) / ((ga**2 / wr) + 1j * (kappa_a/2) + (2 * ga*gb / wr) * nb_ss - wa + Ohm_a)
-
-        listAux_fieldAmp_modeA_2.append(a_ss_2)
-
-
         # Computing negativity between mode A and B
         rhoAB = ptrace(rho_ss, (0, 1))
 
         neg = negativity(rhoAB, 0, method='eigenvalues')
         
         listAux_negativity_modesAB.append(neg)
+        
+        # Computing g2:
 
-    absA_list = [abs(k) for k in listAux_fieldAmp_modeA_1]
-    absA_list_2 = [abs(k) for k in listAux_fieldAmp_modeA_2]
+        g2A = (expect(a.dag() * a.dag() * a * a, rho_ss)) / (expect(Na, rho_ss)**2)
+        g2B = (expect(b.dag() * b.dag() * b * b, rho_ss)) / (expect(Nb, rho_ss)**2)
 
+        listAux_g2_modeA.append(g2A)
+        listAux_g2_modeB.append(g2B)   
+
+    absA_list = [abs(k) for k in listAux_fieldAmp_modeA]
     absB_list = [abs(k) for k in listAux_fieldAmp_modeB]
 
-    output =[absA_list,                         #0
-            absA_list_2,                        #1
-            absB_list,                          #2
-            listAux_NumberOp_modeA,             #3
-            listAux_NumberOp_modeB,             #4
-            listAux_C1,                         #5
-            listAux_C2,                         #6
-            listAux_Csym,                       #7
-            listAux_negativity_modesAB]         #8
+    output =[absA_list,                          #0
+             absB_list,                          #1
+             listAux_NumberOp_modeA,             #2
+             listAux_NumberOp_modeB,             #3
+             listAux_C1,                         #4
+             listAux_C2,                         #5
+             listAux_Csym,                       #6
+             listAux_negativity_modesAB,         #7
+             listAux_g2_modeA,                   #8
+             listAux_g2_modeB]                   #9                  
 
     return  output
 
@@ -360,16 +359,28 @@ def Solver_TwoModesCoupledToMR_Sim1(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
 ######################################################################################################
 ######################################################################################################
 
-def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,galist):
+def Solver_TwoModesCoupledToMR_Sim2(N_a,N_b,N_r,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,galist):
     """
-    This functions solves the steady-state for a system of two EM modes,
-    A and B, coupled to single mechanical mode R, for different values of
-    coupling strength g_a and driver detuning Delta_a = wa-Omega_a.
+    (Simulation 2) This functions solves the steady-state and returns a list of quantities for 
+    a system of two EM modes, A and B, coupled to single mechanical mode R, for different values 
+    of coupling strengths for cavity A, g_a (x-axis), and cavity B, g_b (y-axis/proc).
+
+    The output order is the following:
+    0. Field amplitude mode A 
+    1. Field amplitude mode B
+    2. Average number operator mode A
+    3. Average number operator mode B
+    4. Correlation C1
+    5. Correlation C2
+    6. Correlation Csym
+    7. Negativity between mode A and B
+    8. g2 for mode A
+    9. g2 for mode B
 
     """
-    a = tensor(destroy(N), qeye(N), qeye(N))
-    b = tensor(qeye(N), destroy(N), qeye(N))
-    r = tensor(qeye(N), qeye(N), destroy(N))
+    a = tensor(destroy(N_a), qeye(N_b), qeye(N_r))
+    b = tensor(qeye(N_a), destroy(N_b), qeye(N_r))
+    r = tensor(qeye(N_a), qeye(N_b), destroy(N_r))
     Na = a.dag() * a
     Nb = b.dag() * b
     Nr = r.dag() * r
@@ -377,18 +388,14 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
     Xb = b.dag() + b
     Xr = r.dag() + r
 
-
     # Field operators
-    listAux_fieldAmp_modeA_1 = []
-    listAux_fieldAmp_modeA_2 = []
+    listAux_fieldAmp_modeA = []
     listAux_fieldAmp_modeB = []
 
     listAux_NumberOp_modeA = []
     listAux_NumberOp_modeB = []
 
     # Correlations
-    listAux_a1N2_modeA = []
-
     listAux_C1 = []
     listAux_C2 = []
     listAux_Csym = []
@@ -403,16 +410,14 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         ga = galist[i]
         gb = proc
 
-        chiA = ((ga**2)/wr)
         chiB = ((gb**2)/wr)
-        chiAB = ((gb*ga)/wr)
 
-        Ohm_a = wa
-        Ohm_b = wb
+        Delta_a = -4 
+        Delta_b = -7 
 
         #Hamiltonian
-        Ha = (wa-Ohm_a) * Na
-        Hb = (wb-Ohm_b) * Nb
+        Ha = -Delta_a * Na
+        Hb = -Delta_b * Nb
         Hr = wr * Nr
         Hint_a = -ga * Na * Xr
         Hint_b = -gb * Nb * Xr
@@ -440,7 +445,7 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
             c_ops.append(sqrt(rate) * r.dag())
         
         # Steady-state density operators
-        rho_ss = steadystate(H, c_ops)
+        rho_ss = steadystate(H, c_ops, method='power')
         chi_ss = rho_ss - tensor(ptrace(rho_ss, (0)),
                                  ptrace(rho_ss, (1)), 
                                  ptrace(rho_ss, (2)))
@@ -458,7 +463,7 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         a_ss = expect(a, rho_ss)
         b_ss = expect(b, rho_ss)
 
-        listAux_fieldAmp_modeA_1.append(a_ss)
+        listAux_fieldAmp_modeA.append(a_ss)
         listAux_fieldAmp_modeB.append(b_ss)
 
         # Computing average number operator
@@ -467,22 +472,6 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
 
         listAux_NumberOp_modeA.append(abs(na_ss))
         listAux_NumberOp_modeB.append(abs(nb_ss))
-
-        # Computing field amplitude, method 2
-        aada = expect(a * a.dag() * a, rho_ss)
-
-        pol_arg = (r.dag() - r) * ((ga/wr) * Na + (gb/wr) * Nb)
-        pol = (pol_arg.expm())
-        #pol_arg_half = (pol_arg / 2)
-        #pol_half = pol_arg_half.expm()
-
-        rho_p = (pol * rho_ss * pol.dag())
-
-        # Eq. 20
-        a_ss_2 = (E_a + ga * (rho_p * a * Xr).tr() - ((2 * ga**2 / wr) * aada ) - ((2 * ga*gb / wr) * C_1)) / ((ga**2 / wr) + 1j * (kappa_a/2) + (2 * ga*gb / wr) * nb_ss - wa + Ohm_a)
-
-        listAux_fieldAmp_modeA_2.append(a_ss_2)
-
 
         # Computing negativity between mode A and B
         rhoAB = ptrace(rho_ss, (0, 1))
@@ -499,22 +488,19 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
         listAux_g2_modeA.append(g2A)
         listAux_g2_modeB.append(g2B)    
 
-    absA_list = [abs(k) for k in listAux_fieldAmp_modeA_1]
-    absA_list_2 = [abs(k) for k in listAux_fieldAmp_modeA_2]
-
+    absA_list = [abs(k) for k in listAux_fieldAmp_modeA]
     absB_list = [abs(k) for k in listAux_fieldAmp_modeB]
 
     output =[absA_list,                         #0
-            absA_list_2,                        #1
-            absB_list,                          #2
-            listAux_NumberOp_modeA,             #3
-            listAux_NumberOp_modeB,             #4
-            listAux_C1,                         #5
-            listAux_C2,                         #6
-            listAux_Csym,                       #7
-            listAux_negativity_modesAB,         #8
-            listAux_g2_modeA,                   #9
-            listAux_g2_modeB]                   #10
+            absB_list,                          #1
+            listAux_NumberOp_modeA,             #2
+            listAux_NumberOp_modeB,             #3
+            listAux_C1,                         #4
+            listAux_C2,                         #5
+            listAux_Csym,                       #6
+            listAux_negativity_modesAB,         #7
+            listAux_g2_modeA,                   #8
+            listAux_g2_modeB]                   #9
 
     return  output
 
@@ -522,12 +508,23 @@ def Solver_TwoModesCoupledToMR_Sim2(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,
 ######################################################################################################
 ######################################################################################################
 
-def Solver_TwoModesCoupledToMR_Sim3(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,ohm_a_list):
+def Solver_TwoModesCoupledToMR_Sim3(N_a,N_b,N_r,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,proc,Delta_a_list):
     """
-    This functions solves the steady-state for a system of two EM modes,
-    A and B, coupled to single mechanical mode R, for different values of
-    coupling strength g_a and driver detuning Delta_a = wa-Omega_a.
+    (Simulation 3) This functions solves the steady-state and returns a list of quantities for 
+    a system of two EM modes, A and B, coupled to single mechanical mode R, for different values 
+    of driver detunings Delta_a (x-axis) and Delta_b = (wb-Omega_b) (y-axis/proc).
 
+    The output order is the following:
+    0. Field amplitude mode A 
+    1. Field amplitude mode B
+    2. Average number operator mode A
+    3. Average number operator mode B
+    4. Correlation C1
+    5. Correlation C2
+    6. Correlation Csym
+    7. Negativity between mode A and B
+    8. g2 for mode A
+    9. g2 for mode B
     """
     a = tensor(destroy(N), qeye(N), qeye(N))
     b = tensor(qeye(N), destroy(N), qeye(N))

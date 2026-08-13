@@ -211,28 +211,28 @@ def Solver_2Modes_QNonlinearOM_voltageA(
     # alpha_in_a = sqrt(P_in_a / (hbar * Omega_a)) * exp(1j * phi_in_a)
     #
     if alpha_in_a is None:
-        alpha_in_a = (E_a / np.sqrt(kappa_ex_a)) * np.exp(1j * phi_in_a)
+        alpha_in_a = (E_a / sqrt(kappa_ex_a)) * exp(1j * phi_in_a)
 
     #=====================================================
     # Generate synthetic demodulated voltage samples
     #=====================================================
-    V_clean = G_a * (alpha_in_a - np.sqrt(kappa_ex_a) * a1_eq334)
+    V_clean = G_a * (alpha_in_a - sqrt(kappa_ex_a) * a1_eq334)
 
     if noise_sigma > 0:
-        rng = np.random.default_rng(seed)
-        noise = (noise_sigma / np.sqrt(2.0)) * (
+        rng = random.default_rng(seed)
+        noise = (noise_sigma / sqrt(2.0)) * (
             rng.normal(size=Ns) + 1j * rng.normal(size=Ns)
         )
         V_samples = V_clean + noise
     else:
-        V_samples = np.full(Ns, V_clean, dtype=complex)
+        V_samples = full(Ns, V_clean, dtype=complex)
 
-    V_avg = np.mean(V_samples)
+    V_avg = mean(V_samples)
 
     #=====================================================
     # Reconstruct <a_1> from voltages
     #=====================================================
-    a1_rec = (alpha_in_a - V_avg / G_a) / np.sqrt(kappa_ex_a)
+    a1_rec = (alpha_in_a - V_avg / G_a) / sqrt(kappa_ex_a)
 
     abs_error = abs(a1_rec - a1_ss)
     rel_error = abs_error / max(abs(a1_ss), 1e-15)
@@ -1180,8 +1180,8 @@ def Solver_TwoModesCoupledToMR_ExtField(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,
     listAux_Y_modeA = []
     listAux_X_modeA = []
     listAux_Xalt_modeA = []
-    listAux_realY_modeA = []
-    listAux_realX_modeA = []
+    listAuxrealY_modeA = []
+    listAuxrealX_modeA = []
     listAux_imagY_modeA = []
     listAux_imagX_modeA = []
     listAux_negativity_modesAB = []
@@ -1251,8 +1251,8 @@ def Solver_TwoModesCoupledToMR_ExtField(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,
         listAux_X_modeA.append(abs(X))
         listAux_Xalt_modeA.append(abs(X_alt))
 
-        listAux_realY_modeA.append(real(Y))
-        listAux_realX_modeA.append(real(X))
+        listAuxrealY_modeA.append(real(Y))
+        listAuxrealX_modeA.append(real(X))
 
         listAux_imagY_modeA.append(imag(Y))
         listAux_imagX_modeA.append(imag(X))
@@ -1340,8 +1340,8 @@ def Solver_TwoModesCoupledToMR_ExtField(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,
             listAux_NumberOp_modeB,             #7
             listAux_X_modeA,                    #8
             listAux_Y_modeA,                    #9
-            listAux_realX_modeA,                #10
-            listAux_realY_modeA,                #11
+            listAuxrealX_modeA,                #10
+            listAuxrealY_modeA,                #11
             listAux_imagX_modeA,                #12
             listAux_imagY_modeA,                #13
             listAux_negativity_modesAB,         #14
@@ -1391,8 +1391,8 @@ def Solver_TwoModesCoupledToMR_Detuning(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,
     listAux_Y_modeA = []
     listAux_X_modeA = []
     listAux_Xalt_modeA = []
-    listAux_realY_modeA = []
-    listAux_realX_modeA = []
+    listAuxrealY_modeA = []
+    listAuxrealX_modeA = []
     listAux_imagY_modeA = []
     listAux_imagX_modeA = []
     listAux_negativity_modesAB = []
@@ -1462,8 +1462,8 @@ def Solver_TwoModesCoupledToMR_Detuning(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,
         listAux_X_modeA.append(abs(X))
         listAux_Xalt_modeA.append(abs(X_alt))
 
-        listAux_realY_modeA.append(real(Y))
-        listAux_realX_modeA.append(real(X))
+        listAuxrealY_modeA.append(real(Y))
+        listAuxrealX_modeA.append(real(X))
 
         listAux_imagY_modeA.append(imag(Y))
         listAux_imagX_modeA.append(imag(X))
@@ -1551,8 +1551,8 @@ def Solver_TwoModesCoupledToMR_Detuning(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,
             listAux_NumberOp_modeB,             #7
             listAux_X_modeA,                    #8
             listAux_Y_modeA,                    #9
-            listAux_realX_modeA,                #10
-            listAux_realY_modeA,                #11
+            listAuxrealX_modeA,                #10
+            listAuxrealY_modeA,                #11
             listAux_imagX_modeA,                #12
             listAux_imagY_modeA,                #13
             listAux_negativity_modesAB,         #14
@@ -1566,3 +1566,264 @@ def Solver_TwoModesCoupledToMR_Detuning(N,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,
 
     return  output
 
+######################################################################################################
+######################################################################################################
+######################################################################################################
+
+def Solver_2Modes_QNonlinearOM_BellDynamics(N_a,N_b,N_r,wa,wb,wr,kappa_a,kappa_b,gamma,n_th_r,E_a,E_b,ga,gb,Delta_a,Delta_b,
+                                            t_max,Nt,phi=0.0,return_trajectory=False):
+    """
+    Time-dependent simulation for blockade-assisted generation of
+
+        |Psi_phi> = (|10> + exp(i*phi)|01>)/sqrt(2)
+
+    Frequency-like input parameters are given in MHz.
+    Time is returned in ns.
+
+    The Hamiltonian convention is
+
+        H = -Delta_a N_a - Delta_b N_b + wr N_r
+            - ga N_a Xr - gb N_b Xr
+            + drive_a + drive_b
+
+    Parameters
+    ----------
+    phi : float
+        Relative phase between the two cavity drives.
+        phi = 0       -> (|10> + |01>)/sqrt(2)
+        phi = pi      -> (|10> - |01>)/sqrt(2)
+
+    return_trajectory : bool
+        If False, only quantities at maximum Bell fidelity are returned.
+        If True, the full time-dependent observables are also returned.
+    """
+
+    if N_a < 3 or N_b < 3:
+        raise ValueError("Use N_a >= 3 and N_b >= 3 to resolve |20> and |02> leakage.")
+
+    ##############################################################
+    # Unit conversion
+    ##############################################################
+
+    # Input frequencies are f = omega/(2*pi) in MHz.
+    # QuTiP Hamiltonian coefficients must have units of 1/ns.
+    #
+    # 1 MHz = 1e-3 cycles/ns
+    #       = 2*pi*1e-3 rad/ns
+
+    MHz = 2*pi*1e-3
+
+    wr      = wr      * MHz
+
+    kappa_a = kappa_a * MHz
+    kappa_b = kappa_b * MHz
+    gamma   = gamma   * MHz
+
+    E_a     = E_a     * MHz
+    E_b     = E_b     * MHz
+
+    ga      = ga      * MHz
+    gb      = gb      * MHz
+
+    Delta_a = Delta_a * MHz
+    Delta_b = Delta_b * MHz
+
+    a = tensor(destroy(N_a),qeye(N_b),qeye(N_r))
+    b = tensor(qeye(N_a),destroy(N_b),qeye(N_r))
+    r = tensor(qeye(N_a),qeye(N_b),destroy(N_r))
+
+    Na = a.dag() * a
+    Nb = b.dag() * b
+    Nr = r.dag() * r
+
+    Xr = r + r.dag()
+
+    H_0 = (
+        - Delta_a * Na
+        - Delta_b * Nb
+        + wr * Nr
+        - ga * Na * Xr
+        - gb * Nb * Xr)
+
+    H_drive_a = E_a * (a.dag() + a)
+    H_drive_b = E_b * (exp(1j*phi) * b.dag() + exp(-1j*phi) * b)
+
+    H = H_0 + H_drive_a + H_drive_b
+    ##############################################################
+    # Collapse operators
+    ##############################################################
+    c_ops = []
+    c_ops.append(sqrt(kappa_a) * a)
+    c_ops.append(sqrt(kappa_b) * b)
+    c_ops.append(sqrt(gamma * (n_th_r + 1)) * r)
+
+    if n_th_r > 0:
+        c_ops.append(sqrt(gamma * n_th_r) * r.dag())
+
+    ##############################################################
+    # Initial state
+    ##############################################################
+    rho_a_0 = fock_dm(N_a, 0)
+    rho_b_0 = fock_dm(N_b, 0)
+
+    if n_th_r == 0:
+        rho_r_0 = fock_dm(N_r, 0)
+    else:
+        rho_r_0 = thermal_dm(N_r, n_th_r)
+
+    rho_0 = tensor(rho_a_0,rho_b_0,rho_r_0)
+
+    ##############################################################
+    # Cavity basis states
+    ##############################################################
+    ket00 = tensor(basis(N_a, 0), basis(N_b, 0))
+    ket10 = tensor(basis(N_a, 1),basis(N_b, 0))
+    ket01 = tensor(basis(N_a, 0),basis(N_b, 1))
+    ket11 = tensor(basis(N_a, 1),basis(N_b, 1))
+    ket20 = tensor(basis(N_a, 2),basis(N_b, 0))
+    ket02 = tensor(basis(N_a, 0),basis(N_b, 2))
+    ##############################################################
+    # Target Bell state
+    ##############################################################
+
+    Bell = (ket10 + exp(1j*phi) * ket01).unit()
+
+    I_r = qeye(N_r)
+
+    P_Bell = tensor(Bell * Bell.dag(), I_r)
+
+    ##############################################################
+    # Population operators
+    ##############################################################
+    P00_op = tensor(ket00 * ket00.dag(), I_r)
+    P10_op = tensor(ket10 * ket10.dag(), I_r)
+    P01_op = tensor(ket01 * ket01.dag(), I_r)
+    P11_op = tensor(ket11 * ket11.dag(), I_r)
+    P20_op = tensor(ket20 * ket20.dag(), I_r)
+    P02_op = tensor(ket02 * ket02.dag(), I_r)
+    ##############################################################
+    # Coherence and HZ witness
+    ##############################################################
+
+    # <C_10,01> = rho_(10,01)
+
+    C_10_01 = tensor(ket01 * ket10.dag(),I_r)
+
+    # Hillery-Zubairy witness:
+    #
+    # W_HZ = <N_a N_b> - |<a b^dag>|^2
+
+    NaNb_op = Na * Nb
+    abdag_op = a * b.dag()
+
+    ##############################################################
+    # Time evolution
+    ##############################################################
+
+    tlist = linspace(0.0,t_max,Nt)
+
+    e_ops = [
+        P_Bell,
+        P00_op,
+        P10_op,
+        P01_op,
+        P11_op,
+        P20_op,
+        P02_op,
+        C_10_01,
+        NaNb_op,
+        abdag_op,
+        Na,
+        Nb]
+
+    result = mesolve(H,rho_0,tlist,c_ops,e_ops)
+
+    ##############################################################
+    # Extract time-dependent quantities
+    ##############################################################
+
+    fidelity = real(result.expect[0])
+
+    P00 = real(result.expect[1])
+    P10 = real(result.expect[2])
+    P01 = real(result.expect[3])
+
+    P11 = real(result.expect[4])
+    P20 = real(result.expect[5])
+    P02 = real(result.expect[6])
+
+    coherence = asarray(result.expect[7])
+
+    NaNb = real(result.expect[8])
+    abdag = asarray(result.expect[9])
+
+    Na = real(result.expect[10])
+    Nb = real(result.expect[11])
+
+    ##############################################################
+    # HZ witness
+    ##############################################################
+
+    W_HZ = (NaNb - abs(abdag)**2)
+
+    ##############################################################
+    # Total leakage outside {|00>, |10>, |01>}
+    ##############################################################
+    leakage = (1.0 - P00 - P10 - P01)
+
+    leakage = maximum(leakage, 0.0)
+    ##############################################################
+    # Find maximum Bell fidelity
+    ##############################################################
+
+    k_max = argmax(fidelity)
+
+    output = {
+        "F_max": fidelity[k_max],
+        "t_max_fidelity": tlist[k_max],
+
+        "P00": P00[k_max],
+        "P10": P10[k_max],
+        "P01": P01[k_max],
+
+        "P11": P11[k_max],
+        "P20": P20[k_max],
+        "P02": P02[k_max],
+
+        "leakage": leakage[k_max],
+
+        "coherence": coherence[k_max],
+
+        "W_HZ": W_HZ[k_max],
+
+        "Na": Na[k_max],
+        "Nb": Nb[k_max]
+    }
+    ##############################################################
+    # Optionally return entire trajectory
+    ##############################################################
+
+    if return_trajectory:
+
+        output["tlist"] = tlist
+
+        output["fidelity"] = fidelity
+
+        output["P00_t"] = P00
+        output["P10_t"] = P10
+        output["P01_t"] = P01
+
+        output["P11_t"] = P11
+        output["P20_t"] = P20
+        output["P02_t"] = P02
+
+        output["leakage_t"] = leakage
+
+        output["coherence_t"] = coherence
+        output["W_HZ_t"] = W_HZ
+
+        output["Na_t"] = Na
+        output["Nb_t"] = Nb
+
+
+    return output
